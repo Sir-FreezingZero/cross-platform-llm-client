@@ -200,7 +200,6 @@ Future<T?> _showAnchoredMenu<T>(
                 AppRow(
                   icon: a.icon,
                   title: a.label,
-                  dense: true,
                   selected: a.checked,
                   destructive: a.destructive,
                   onTap: () => Navigator.pop(ctx, a.value),
@@ -416,7 +415,6 @@ class _ChatDrawerState extends State<ChatDrawer> {
         AppRow(
           icon: Icons.memory_rounded,
           title: 'Currently loaded model',
-          dense: true,
           selected: current == null,
           titleColor: current == null ? null : muted,
           onTap: () => Navigator.pop(ctx, ''),
@@ -425,7 +423,6 @@ class _ChatDrawerState extends State<ChatDrawer> {
           AppRow(
             icon: image ? Icons.image_outlined : Icons.chat_bubble_outline_rounded,
             title: m.name,
-            dense: true,
             selected: fileOf(m) == current,
             titleColor: fileOf(m) == current ? null : muted,
             onTap: () => Navigator.pop(ctx, fileOf(m)),
@@ -669,7 +666,6 @@ class _ChatDrawerState extends State<ChatDrawer> {
                     AppRow(
                       icon: Icons.edit_note_rounded,
                       title: 'New Chat',
-                      dense: true,
                       onTap: _newDefaultChat,
                       trailing: _DefaultModelButton(
                         tooltip: 'Default chat model',
@@ -681,7 +677,6 @@ class _ChatDrawerState extends State<ChatDrawer> {
                     AppRow(
                       icon: Icons.image_outlined,
                       title: 'New Image Gen',
-                      dense: true,
                       onTap: _newImageGen,
                       trailing: _DefaultModelButton(
                         tooltip: 'Default image model',

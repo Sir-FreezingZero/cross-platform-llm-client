@@ -85,6 +85,12 @@ class AppTokens {
       fontWeight: FontWeight.w600,
       letterSpacing: -0.2,
       color: text);
+  // Two-line rows: both lines fit the 32 icon height, so a 44 row keeps its
+  // icon inset (and the group's concentric corners).
+  TextStyle get rowTitle => GoogleFonts.inter(
+      fontSize: 14, height: 1.15, letterSpacing: -0.15, color: text);
+  TextStyle get rowSubtitle =>
+      GoogleFonts.inter(fontSize: 12, height: 1.2, color: muted);
   TextStyle get caption =>
       GoogleFonts.inter(fontSize: 13, height: 1.35, color: muted);
   TextStyle get small => GoogleFonts.inter(fontSize: 12, color: muted);
@@ -147,7 +153,7 @@ class AppBarIcon extends StatelessWidget {
 }
 
 /// Standard horizontal page padding.
-const kPagePadding = EdgeInsets.fromLTRB(16, 4, 16, 32);
+const kPagePadding = EdgeInsets.fromLTRB(8, 4, 8, 24);
 
 // ── Sections & groups ───────────────────────────────────────────────────
 
@@ -160,7 +166,7 @@ class SectionHeader extends StatelessWidget {
   const SectionHeader(this.title,
       {super.key,
       this.trailing,
-      this.padding = const EdgeInsets.fromLTRB(4, 24, 4, 8)});
+      this.padding = const EdgeInsets.fromLTRB(0, 12, 12, 4)});
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +204,7 @@ class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(12),
     this.onTap,
     this.outlined = false,
   });
@@ -209,7 +215,7 @@ class AppCard extends StatelessWidget {
     return Material(
       color: outlined ? Colors.transparent : t.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
         side: BorderSide(
             color: outlined ? t.outline : t.hairline,
             width: outlined ? 1 : 0.5),
@@ -237,9 +243,9 @@ class AppGroup extends StatelessWidget {
   const AppGroup(
       {super.key,
       required this.children,
-      this.dividerIndent = 16,
+      this.dividerIndent = 0,
       this.flat = false,
-      this.radius = 16});
+      this.radius = 22});
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +312,7 @@ class _CollapsibleCardState extends State<CollapsibleCard> {
     return Container(
       decoration: BoxDecoration(
         color: t.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: t.hairline, width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
@@ -316,23 +322,25 @@ class _CollapsibleCardState extends State<CollapsibleCard> {
           splashFactory: NoSplash.splashFactory,
           highlightColor: t.surfacePressed,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+            padding: const EdgeInsets.fromLTRB(6, 6, 10, 6),
             child: Row(children: [
-              IconBadge(widget.icon, size: 36),
+              IconBadge(widget.icon),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(widget.title, style: t.bodyStrong),
+                      Text(widget.title,
+                          style: t.rowTitle
+                              .copyWith(fontWeight: FontWeight.w600)),
                       if (widget.summary != null &&
                           widget.summary!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(widget.summary!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: t.caption.copyWith(fontFeatures: const [
+                            style: t.rowSubtitle.copyWith(fontFeatures: const [
                               FontFeature.tabularFigures()
                             ])),
                       ],
@@ -377,9 +385,6 @@ class AppRow extends StatelessWidget {
   final bool chevron;
   final bool selected;
 
-  /// Tighter row for compact surfaces such as the chat sidebar.
-  final bool dense;
-
   /// Overrides the title color; ignored for destructive rows.
   final Color? titleColor;
 
@@ -394,7 +399,6 @@ class AppRow extends StatelessWidget {
     this.destructive = false,
     this.chevron = false,
     this.selected = false,
-    this.dense = false,
     this.titleColor,
   });
 
@@ -402,6 +406,7 @@ class AppRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppTokens.of(context);
     final color = destructive ? t.red : (titleColor ?? t.text);
+    final hasSubtitle = subtitle != null && subtitle!.isNotEmpty;
     final lead = leading ??
         (icon != null
             ? IconBadge(icon!, color: destructive ? t.red : null)
@@ -416,12 +421,12 @@ class AppRow extends StatelessWidget {
       splashFactory: NoSplash.splashFactory,
       highlightColor: t.surfacePressed,
       child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: dense ? 44 : 52),
+        constraints: const BoxConstraints(minHeight: 44),
         child: Padding(
           padding:
-              dense
+              lead != null
                   ? const EdgeInsets.all(6)
-                  : const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                  : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(children: [
             if (lead != null) ...[lead, const SizedBox(width: 12)],
             Expanded(
@@ -430,17 +435,34 @@ class AppRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(title,
-                        style: t.body.copyWith(
+                        maxLines: hasSubtitle ? 1 : null,
+                        overflow: hasSubtitle ? TextOverflow.ellipsis : null,
+                        style: (hasSubtitle ? t.rowTitle : t.body).copyWith(
                             color: color,
                             fontWeight:
                                 selected ? FontWeight.w600 : FontWeight.w400)),
-                    if (subtitle != null && subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(subtitle!, style: t.caption),
+                    if (hasSubtitle) ...[
+                      const SizedBox(height: 1),
+                      Text(subtitle!, style: t.rowSubtitle),
                     ],
                   ]),
             ),
-            if (trailing != null) ...[const SizedBox(width: 10), trailing!],
+            if (trailing != null) ...[
+              const SizedBox(width: 10),
+              // A Switch lays out 40-48 tall around its 32 track, which would
+              // push the row past 44. Lay it out at the track's own size.
+              if (trailing is Switch)
+                SizedBox(
+                  width: 52,
+                  height: 32,
+                  child: OverflowBox(
+                    maxHeight: 48,
+                    child: trailing!,
+                  ),
+                )
+              else
+                trailing!,
+            ],
             if (selected && trailing == null)
               Icon(Icons.check_rounded, size: 20, color: t.accent),
             if (chevron) ...[
@@ -672,6 +694,7 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final bool busy;
   final bool expand;
+  final double radius;
   const PrimaryButton({
     super.key,
     required this.label,
@@ -679,6 +702,7 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.busy = false,
     this.expand = true,
+    this.radius = 12,
   });
 
   @override
@@ -707,9 +731,9 @@ class PrimaryButton extends StatelessWidget {
     );
     final button = Material(
       color: enabled ? t.accent : t.accent.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(radius),
         onTap: enabled ? onPressed : null,
         child: SizedBox(
           height: 48,
