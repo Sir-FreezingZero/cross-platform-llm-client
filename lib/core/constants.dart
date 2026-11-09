@@ -4,6 +4,7 @@ class AppConstants {
   // Hive Box Names
   static const String chatSessionsBox = 'chat_sessions';
   static const String chatMessagesBox = 'chat_messages';
+  static const String chatFoldersBox = 'chat_folders';
   static const String tasksBox = 'tasks';
   static const String settingsBox = 'settings';
 
@@ -63,6 +64,9 @@ class AppConstants {
   static const String githubRepo = 'orailnoor/cross-platform-llm-client';
   static const String keyServerApiKey = 'server_api_key';
   static const String keyServerUseApiKey = 'server_use_api_key';
+  static const String keyChatListSort = 'chat_list_sort';
+  static const String keyDefaultChatModel = 'default_chat_model';
+  static const String keyDefaultImageModel = 'default_image_model';
   static const String keyServerAllowNetwork = 'server_allow_network';
   static const String keyClusterEnabled = 'cluster_enabled';
   static const String keyClusterWorkers = 'cluster_workers';

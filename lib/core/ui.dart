@@ -233,11 +233,13 @@ class AppGroup extends StatelessWidget {
   /// No surface/border — just the rows and dividers. For use inside another
   /// card (e.g. a [CollapsibleCard] body).
   final bool flat;
+  final double radius;
   const AppGroup(
       {super.key,
       required this.children,
       this.dividerIndent = 16,
-      this.flat = false});
+      this.flat = false,
+      this.radius = 16});
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +251,7 @@ class AppGroup extends StatelessWidget {
           ? null
           : BoxDecoration(
               color: t.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(radius),
               border: Border.all(color: t.hairline, width: 0.5),
             ),
       clipBehavior: flat ? Clip.none : Clip.antiAlias,
@@ -375,6 +377,12 @@ class AppRow extends StatelessWidget {
   final bool chevron;
   final bool selected;
 
+  /// Tighter row for compact surfaces such as the chat sidebar.
+  final bool dense;
+
+  /// Overrides the title color; ignored for destructive rows.
+  final Color? titleColor;
+
   const AppRow({
     super.key,
     this.icon,
@@ -386,12 +394,14 @@ class AppRow extends StatelessWidget {
     this.destructive = false,
     this.chevron = false,
     this.selected = false,
+    this.dense = false,
+    this.titleColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = AppTokens.of(context);
-    final color = destructive ? t.red : t.text;
+    final color = destructive ? t.red : (titleColor ?? t.text);
     final lead = leading ??
         (icon != null
             ? IconBadge(icon!, color: destructive ? t.red : null)
@@ -406,9 +416,12 @@ class AppRow extends StatelessWidget {
       splashFactory: NoSplash.splashFactory,
       highlightColor: t.surfacePressed,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 52),
+        constraints: BoxConstraints(minHeight: dense ? 44 : 52),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          padding:
+              dense
+                  ? const EdgeInsets.all(6)
+                  : const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
           child: Row(children: [
             if (lead != null) ...[lead, const SizedBox(width: 12)],
             Expanded(

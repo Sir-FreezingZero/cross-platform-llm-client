@@ -15,6 +15,7 @@ import 'package:gal/gal.dart';
 import '../controllers/settings_controller.dart';
 import '../core/constants.dart';
 import '../core/ui.dart';
+import '../models/chat_folder.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../ffi/sd_ffi_bindings.dart';
@@ -58,6 +59,11 @@ class ChatController extends GetxController {
 
   // State
   final sessions = <ChatSession>[].obs;
+  final folders = <ChatFolder>[].obs;
+
+  /// Sidebar state kept here because the drawer is rebuilt each time it opens.
+  final expandedFolderIds = <String>[].obs;
+  String drawerQuery = '';
   final messages = <ChatMessage>[].obs;
   final currentSessionId = ''.obs;
   final isLoading = false.obs;
@@ -183,11 +189,13 @@ class ChatController extends GetxController {
     final raw = _hive.getAllSessions();
     sessions.value = raw.map((m) => ChatSession.fromMap(m)).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    folders.value =
+        _hive.getAllFolders().map((m) => ChatFolder.fromMap(m)).toList();
   }
 
-  void createNewChat() {
+  void createNewChat({String? folderId}) {
     final id = _uuid.v4();
-    final session = ChatSession(id: id, title: 'New Chat');
+    final session = ChatSession(id: id, title: 'New Chat', folderId: folderId);
     _hive.saveSession(id, session.toMap());
     sessions.insert(0, session);
     openChat(id);
@@ -224,6 +232,69 @@ class ChatController extends GetxController {
       currentSessionId.value = '';
       messages.clear();
     }
+  }
+
+  /// Starts a chat, reusing the open one when it is still blank.
+  void startChatFromSidebar({String? folderId}) {
+    final current = currentSessionId.value;
+    if (messages.isEmpty && current.isNotEmpty) {
+      moveChatToFolder(current, folderId);
+    } else {
+      createNewChat(folderId: folderId);
+    }
+  }
+
+  // Sidebar edits keep updatedAt, so they don't reorder "Recent activity".
+  void _editSession(
+      String sessionId, ChatSession Function(ChatSession) change) {
+    final idx = sessions.indexWhere((s) => s.id == sessionId);
+    if (idx < 0) return;
+    final updated = change(sessions[idx]);
+    _hive.saveSession(updated.id, updated.toMap());
+    sessions[idx] = updated;
+  }
+
+  void renameChat(String sessionId, String title) => _editSession(
+      sessionId, (s) => s.copyWith(title: title, updatedAt: s.updatedAt));
+
+  void setChatPinned(String sessionId, bool pinned) => _editSession(
+      sessionId, (s) => s.copyWith(pinned: pinned, updatedAt: s.updatedAt));
+
+  void moveChatToFolder(String sessionId, String? folderId) => _editSession(
+      sessionId, (s) => s.copyWith(folderId: folderId, updatedAt: s.updatedAt));
+
+  /// Ids of the chats whose title or messages contain [query].
+  Set<String> searchChatIds(String query) {
+    final q = query.toLowerCase();
+    return {
+      ...sessions.where((s) => s.title.toLowerCase().contains(q)).map((s) => s.id),
+      ..._hive.chatIdsWithMessageMatching(q),
+    };
+  }
+
+  void createFolder(String name, {String? moveSessionId}) {
+    final folder = ChatFolder(id: _uuid.v4(), name: name);
+    _hive.saveFolder(folder.id, folder.toMap());
+    folders.add(folder);
+    if (moveSessionId != null) moveChatToFolder(moveSessionId, folder.id);
+  }
+
+  void renameFolder(String folderId, String name) {
+    final idx = folders.indexWhere((f) => f.id == folderId);
+    if (idx < 0) return;
+    final updated = folders[idx].copyWith(name: name);
+    _hive.saveFolder(folderId, updated.toMap());
+    folders[idx] = updated;
+  }
+
+  /// Deletes a folder; its chats go back to the main list.
+  void deleteFolder(String folderId) {
+    for (final s in sessions.where((s) => s.folderId == folderId).toList()) {
+      moveChatToFolder(s.id, null);
+    }
+    _hive.deleteFolder(folderId);
+    folders.removeWhere((f) => f.id == folderId);
+    expandedFolderIds.remove(folderId);
   }
 
   // ─── Image Handling ─────────────────────────────

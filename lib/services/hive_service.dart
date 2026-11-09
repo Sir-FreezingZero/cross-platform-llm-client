@@ -5,6 +5,7 @@ import '../core/constants.dart';
 class HiveService extends GetxService {
   late Box _sessionsBox;
   late Box _messagesBox;
+  late Box _foldersBox;
   late Box _tasksBox;
   late Box _settingsBox;
 
@@ -16,6 +17,7 @@ class HiveService extends GetxService {
   Future<HiveService> init() async {
     _sessionsBox = await Hive.openBox(AppConstants.chatSessionsBox);
     _messagesBox = await Hive.openBox(AppConstants.chatMessagesBox);
+    _foldersBox = await Hive.openBox(AppConstants.chatFoldersBox);
     _tasksBox = await Hive.openBox(AppConstants.tasksBox);
     _settingsBox = await Hive.openBox(AppConstants.settingsBox);
     // Preserve current local-server settings and purge obsolete provider data.
@@ -79,6 +81,55 @@ class HiveService extends GetxService {
 
   Future<void> saveMessage(String id, Map<String, dynamic> data) async {
     await _messagesBox.put(id, data);
+  }
+
+  /// Ids of the chats with a message containing [lowerQuery] (lower-cased).
+  Set<String> chatIdsWithMessageMatching(String lowerQuery) {
+    final ids = <String>{};
+    for (final v in _messagesBox.values) {
+      if (v is! Map) continue;
+      final chatId = v['chatId'];
+      final content = v['content'];
+      if (chatId is String &&
+          content is String &&
+          !ids.contains(chatId) &&
+          content.toLowerCase().contains(lowerQuery)) {
+        ids.add(chatId);
+      }
+    }
+    return ids;
+  }
+
+  /// Ids of the chats where an image generation has run.
+  Set<String> chatIdsWithImageGeneration() {
+    final ids = <String>{};
+    for (final v in _messagesBox.values) {
+      if (v is! Map || v['role'] != 'assistant') continue;
+      final chatId = v['chatId'];
+      final image = v['imageBase64'];
+      if (chatId is String &&
+          (v['imageGenDurationMs'] != null ||
+              (image is String && image.isNotEmpty))) {
+        ids.add(chatId);
+      }
+    }
+    return ids;
+  }
+
+  // ─── Chat Folders ──────────────────────────────
+
+  List<Map<dynamic, dynamic>> getAllFolders() {
+    return _foldersBox.values
+        .map((v) => Map<dynamic, dynamic>.from(v))
+        .toList();
+  }
+
+  Future<void> saveFolder(String id, Map<String, dynamic> data) async {
+    await _foldersBox.put(id, data);
+  }
+
+  Future<void> deleteFolder(String id) async {
+    await _foldersBox.delete(id);
   }
 
   // ─── Tasks ─────────────────────────────────────
