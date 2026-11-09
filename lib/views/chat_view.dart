@@ -121,18 +121,8 @@ class ChatView extends GetView<ChatController> {
       ),
       title: Obx(() {
         final text = isDark ? Colors.white : Colors.black;
-        // Home: a quiet wordmark — the model card below carries the status.
-        if (controller.messages.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Text('PrivateLM',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    letterSpacing: -0.5,
-                    color: text)),
-          );
-        }
+        // Home: which model will answer, and its status.
+        if (controller.messages.isEmpty) return const HomeModelStatus();
         final sid = controller.currentSessionId.value;
         final info = _modelInfo(context);
         final title =
@@ -205,8 +195,8 @@ class ChatView extends GetView<ChatController> {
         }),
         Obx(() {
           // Already on a blank chat — a "new chat" button would only create
-          // empty sessions.
-          if (controller.messages.isEmpty) return const SizedBox(width: 8);
+          // empty sessions, so this spot holds the model action instead.
+          if (controller.messages.isEmpty) return const HomeModelAction();
           return IconButton(
               tooltip: 'New chat',
               icon: Icon(Icons.edit_square,
